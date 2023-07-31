@@ -6,9 +6,7 @@ __all__ = (
 
 
 class CrossOriginResourceSharing(object):
-	"""
-	Cross Origin Resource Sharing Class
-	"""
+	"""Cross Origin Resource Sharing Class"""
 
 	ORIGIN = ('*',)
 	HEADERS = ('Accept', 'Accept-Language', 'Content-Type', 'Content-Language', 'Content-Length')

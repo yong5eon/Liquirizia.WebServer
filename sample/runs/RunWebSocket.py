@@ -2,6 +2,8 @@
 
 from Liquirizia.WebApplication import RequestWebSocketRunner, Request, WebSocket
 
+from Liquirizia.WebApplication import RequestRunnerProperties, RequestRunnerPropertiesHelper
+
 __all__ = (
 	'RunWebSocket'
 )
@@ -23,3 +25,10 @@ class RunWebSocket(RequestWebSocketRunner):
 		if op == ws.OPCODE_BINARY:
 			ws.write(buffer, ws.OPCODE_BINARY)
 		return
+
+
+properties = RequestRunnerProperties(
+	RunWebSocket,
+	method='GET',
+	url='/run/socket'
+)

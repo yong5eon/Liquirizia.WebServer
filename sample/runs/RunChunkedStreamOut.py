@@ -2,6 +2,7 @@
 
 from Liquirizia.WebApplication import RequestStreamRunner, Request, RequestReader, ResponseWriter
 from Liquirizia.WebApplication.Serializer import SerializerHelper
+from Liquirizia.WebApplication import RequestRunnerProperties
 
 from time import sleep
 
@@ -32,3 +33,10 @@ class RunChunkedStreamOut(RequestStreamRunner):
 		writer.chunk()
 		writer.end()
 		return
+
+
+properties=RequestRunnerProperties(
+	RunChunkedStreamOut,
+	method='GET',
+	url='/run/stream/chunked/out'
+)

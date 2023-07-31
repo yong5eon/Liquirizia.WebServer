@@ -19,6 +19,8 @@ from Liquirizia.WebApplication.Responses import (
 	ResponseNotFound,
 )
 from Liquirizia.WebApplication.Util import DateToTimestamp
+from Liquirizia.WebApplication import Error
+from Liquirizia.WebApplication.Properties import Responsible
 
 from re import compile
 
@@ -70,57 +72,57 @@ class RunFileSystemObject(Route, Runnable):
 		version: str,
 		server: str = None
 	):
-		if self.onRequest:
-			request, response = self.onRequest.run(request)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		m, parameters = self.match(request.uri)
-
-		if request.header('ETag') and request.header('ETag') == self.fso.etag(parameters['path']):
-			response = ResponseNotModified(version=version)
-			writer.send(response, headers=self.headers(request))
-			return response
-
-		if request.header('If-Modified-Since'):
-			timestamp = DateToTimestamp(request.header('If-Modified-Since'))
-			if timestamp and timestamp >= self.fso.timestamp(parameters['path']):
+		try:
+			if self.onRequest:
+				request = self.onRequest.run(request)
+	
+			m, parameters = self.match(request.uri)
+	
+			if request.header('ETag') and request.header('ETag') == self.fso.etag(parameters['path']):
 				response = ResponseNotModified(version=version)
 				writer.send(response, headers=self.headers(request))
 				return response
-
-		# TODO : use cache instead of origin
-
-		if self.onRequestOrigin:
-			request, response = self.onRequestOrigin.run(request)
-			if response:
+	
+			if request.header('If-Modified-Since'):
+				timestamp = DateToTimestamp(request.header('If-Modified-Since'))
+				if timestamp and timestamp >= self.fso.timestamp(parameters['path']):
+					response = ResponseNotModified(version=version)
+					writer.send(response, headers=self.headers(request))
+					return response
+	
+			# TODO : use cache instead of origin
+	
+			if self.onRequestOrigin:
+				request = self.onRequestOrigin.run(request)
+	
+			m, parameters = self.match(request.uri)
+	
+			f = self.fso.open(parameters['path'], mode='rb')
+	
+			if not f:
+				response = ResponseNotFound()
 				writer.send(response, headers=self.headers(request))
 				return response
-
-		m, parameters = self.match(request.uri)
-
-		f = self.fso.open(parameters['path'], mode='rb')
-
-		if not f:
-			response = ResponseNotFound()
+	
+			format, charset = self.fso.type(parameters['path'])
+	
+			if request.header('Range'):
+				# TODO : seek to range
+				pass
+			buffer = f.read()
+	
+			response = ResponseBuffer(buffer, len(buffer), format=format, charset=charset)
+	
+			if self.onResponseOrigin:
+				response = self.onResponseOrigin.run(response)
+	
+			if self.onResponse:
+				response = self.onResponse.run(response)
+	
 			writer.send(response, headers=self.headers(request))
 			return response
-
-		format, charset = self.fso.type(parameters['path'])
-
-		if request.header('Range'):
-			# TODO : seek to range
-			pass
-		buffer = f.read()
-
-		response = ResponseBuffer(buffer, len(buffer), format=format, charset=charset)
-
-		if self.onResponseOrigin:
-			response = self.onResponseOrigin.run(response)
-
-		if self.onResponse:
-			response = self.onResponse.run(response)
-
-		writer.send(response, headers=self.headers(request))
-		return response
+		except Error as e:
+			if isinstance(e, Responsible):
+				writer.send(e.response(), headers=self.headers(request))
+				return e.response()
+			raise e

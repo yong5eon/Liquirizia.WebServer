@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from Liquirizia.WebApplication import (
 	Request,
 	RequestRunner,
@@ -10,8 +9,11 @@ from Liquirizia.WebApplication import (
 	ResponseWriter,
 	CrossOriginResourceSharing,
 )
-from Liquirizia.WebApplication.Validator import Validator
+from Liquirizia.WebApplication import Error
+from Liquirizia.WebApplication.Properties import Responsible
+
 from Liquirizia.WebApplication.Serializer import SerializerHelper
+from Liquirizia.Validator import Validator
 
 from ..Route import Route
 from ..Runnable import Runnable
@@ -58,46 +60,40 @@ class Run(Route, Runnable):
 		version: str,
 		server: str = None
 	):
-		if request.size:
-			request.body = SerializerHelper.Decode(
-				reader.read(request.size),
-				format=request.format,
-				charset=request.charset,
-			)
-
-		if self.onRequest:
-			request, response = self.onRequest.run(request)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		# TODO : do cache instead of origin
-		if self.onRequestOrigin:
-			request, response = self.onRequestOrigin.run(request)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		if self.qs:
-			request.qs, response = self.qs(request.qs)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		if self.body:
-			request.body, response = self.body(request.body)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		obj = self.object(request, parameters)
-		response = obj.run(request.body)
-
-		if self.onResponseOrigin:
-			response = self.onResponseOrigin.run(response)
-
-		if self.onResponse:
-			response = self.onResponse.run(response)
-
-		writer.send(response, headers=self.headers(request))
-		return response
+		try:
+			if request.size:
+				request.body = SerializerHelper.Decode(
+					reader.read(request.size),
+					format=request.format,
+					charset=request.charset,
+				)
+	
+			if self.onRequest:
+				request = self.onRequest.run(request)
+	
+			# TODO : do cache instead of origin
+			if self.onRequestOrigin:
+				request = self.onRequestOrigin.run(request)
+	
+			if self.qs:
+				request.qs = self.qs(request.qs)
+	
+			if self.body:
+				request.body = self.body(request.body)
+	
+			obj = self.object(request, parameters)
+			response = obj.run(request.body)
+	
+			if self.onResponseOrigin:
+				response = self.onResponseOrigin.run(response)
+	
+			if self.onResponse:
+				response = self.onResponse.run(response)
+	
+			writer.send(response, headers=self.headers(request))
+			return response
+		except Error as e:
+			if isinstance(e, Responsible):
+				writer.send(e.response(), headers=self.headers(request))
+				return e.response()
+			raise e

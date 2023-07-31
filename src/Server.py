@@ -21,7 +21,7 @@ from Liquirizia.WebApplication import (
 	ResponseFilter,
 	CrossOriginResourceSharing,
 )
-from Liquirizia.WebApplication.Validator import Validator
+from Liquirizia.Validator import Validator
 from Liquirizia.FileSystemObject import FileSystemObject
 
 from socketserver import ThreadingMixIn, TCPServer
@@ -271,5 +271,7 @@ class Server(ThreadingMixIn, TCPServer):
 		else:
 			ps = Path(path).rglob(pattern)
 		for p in ps if ps else []:
-			RequestRunnerPropertiesHelper.Add(RequestRunnerPropertiesHelper.Load(str(p), name))
+			p = RequestRunnerPropertiesHelper.Load(str(p), name)
+			if p:
+				RequestRunnerPropertiesHelper.Add(p)
 		return

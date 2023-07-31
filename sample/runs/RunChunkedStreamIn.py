@@ -6,6 +6,8 @@ from Liquirizia.WebApplication.Responses import (
 	ResponseBuffer,
 )
 
+from Liquirizia.WebApplication import RequestRunnerProperties
+
 __all__ = (
 	'RunChunkedStreamIn'
 )
@@ -31,3 +33,12 @@ class RunChunkedStreamIn(RequestStreamRunner):
 		response = ResponseBuffer(data, self.request.format, self.request.charset)
 		writer.send(response)
 		return response
+	
+
+properties = RequestRunnerProperties(
+	RunChunkedStreamIn,
+	method='PUT',
+	url='/run/stream/chunked/in'
+)
+
+

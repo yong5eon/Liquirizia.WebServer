@@ -15,6 +15,9 @@ from Liquirizia.WebApplication.Responses import (
 	ResponseFile,
 	ResponseNotModified,
 )
+from Liquirizia.WebApplication import Error
+from Liquirizia.WebApplication.Properties import Responsible
+
 from Liquirizia.WebApplication.Util import DateToTimestamp, ParseRange
 
 from email.utils import formatdate
@@ -87,45 +90,45 @@ class RunFile(Route, Runnable):
 		version: str,
 		server: str = None
 	):
-		if self.onRequest:
-			request, response = self.onRequest.run(request)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		if request.header('ETag') and request.header('ETag') == self.etag():
-			response = ResponseNotModified(version=version)
-			writer.send(response, headers=self.headers(request))
-			return response
-
-		if request.header('If-Modified-Since'):
-			timestamp = DateToTimestamp(request.header('If-Modified-Since'))
-			if timestamp and timestamp >= self.timestamp():
+		try:
+			if self.onRequest:
+				request = self.onRequest.run(request)
+	
+			if request.header('ETag') and request.header('ETag') == self.etag():
 				response = ResponseNotModified(version=version)
 				writer.send(response, headers=self.headers(request))
 				return response
-
-		# TODO : do cache instead of origin
-
-		if self.onRequestOrigin:
-			request, response = self.onRequestOrigin.run(request)
-			if response:
-				writer.send(response, headers=self.headers(request))
-				return response
-
-		offset, size = None, None
-		if request.header('Range'):
-			offset, end = ParseRange(request.header('Range'), self.size())
-			size = end - offset
-		else:
-			size = self.size()
-		response = ResponseFile(file=self.path, version=version, offset=offset, size=size)
-
-		if self.onResponseOrigin:
-			response = self.onResponseOrigin.run(response)
-
-		if self.onResponse:
-			response = self.onResponse.run(response)
-
-		writer.send(response, headers=self.headers(request))
-		return response
+	
+			if request.header('If-Modified-Since'):
+				timestamp = DateToTimestamp(request.header('If-Modified-Since'))
+				if timestamp and timestamp >= self.timestamp():
+					response = ResponseNotModified(version=version)
+					writer.send(response, headers=self.headers(request))
+					return response
+	
+			# TODO : do cache instead of origin
+	
+			if self.onRequestOrigin:
+				request = self.onRequestOrigin.run(request)
+	
+			offset, size = None, None
+			if request.header('Range'):
+				offset, end = ParseRange(request.header('Range'), self.size())
+				size = end - offset
+			else:
+				size = self.size()
+			response = ResponseFile(file=self.path, version=version, offset=offset, size=size)
+	
+			if self.onResponseOrigin:
+				response = self.onResponseOrigin.run(response)
+	
+			if self.onResponse:
+				response = self.onResponse.run(response)
+	
+			writer.send(response, headers=self.headers(request))
+			return response
+		except Error as e:
+			if isinstance(e, Responsible):
+				writer.send(e.response(), headers=self.headers(request))
+				return e.response()
+			raise e

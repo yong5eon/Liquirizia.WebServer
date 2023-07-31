@@ -6,6 +6,8 @@ from Liquirizia.WebApplication.Responses import (
 	ResponseBuffer,
 )
 
+from Liquirizia.WebApplication import RequestRunnerProperties
+
 __all__ = (
 	'RunStreamIn'
 )
@@ -26,3 +28,10 @@ class RunStreamIn(RequestStreamRunner):
 		response = ResponseBuffer(data, self.request.format, self.request.charset)
 		writer.send(response)
 		return response
+
+
+properties = RequestRunnerProperties(
+	RunStreamIn,
+	method='PUT',
+	url='/run/stream/in'
+)

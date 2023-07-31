@@ -12,8 +12,8 @@ __all__ = (
 
 
 class ToJPEG(RequestFilter):
-	def run(self, request: Request) -> tuple[Request, (Response, None)]:
+	def run(self, request: Request) -> Request:
 		request.path = '{}.jpg'.format(request.path)
-		return request, None
+		return request
 
 

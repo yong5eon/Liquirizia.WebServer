@@ -2,6 +2,8 @@
 
 from Liquirizia.WebApplication import RequestStreamRunner, Request, RequestReader, ResponseWriter
 
+from Liquirizia.WebApplication import RequestRunnerProperties
+
 from time import sleep
 
 __all__ = (
@@ -25,3 +27,10 @@ class RunStreamOut(RequestStreamRunner):
 			sleep(1)
 		writer.end()
 		return
+
+
+properties = RequestRunnerProperties(
+	RunStreamOut,
+	method='GET',
+	url='/run/stream/out'
+)
